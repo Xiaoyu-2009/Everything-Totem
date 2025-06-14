@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "everything_totem",
+	"version": "${version}",
+	"name": "万物皆可图腾",
+	"description": "本模组提供了只要但凡是一个物品都会有不死图腾的效果！",
+	"authors": [
+		"Xiaoyu_2009"
+	],
+	"contact": {
+		"homepage": "https://space.bilibili.com/506597031",
+		"sources": "https://github.com/Xiaoyu-2009/everything_totem"
+	},
+	"license": "All Rights Reserved",
+	"icon": "pack.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.xiaoyu.Everything_totem"
+		],
+		"client": [
+			"com.xiaoyu.client.ClientEventHandler"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.14.21",
+		"minecraft": "~1.20.1",
+		"java": ">=17",
+		"fabric-api": "*"
+	}
+}
