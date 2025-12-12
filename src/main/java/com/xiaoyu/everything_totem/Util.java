@@ -5,6 +5,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.*;
+import top.theillusivec4.curios.api.*;
 
 import java.util.*;
 
@@ -29,21 +30,31 @@ public class Util {
             return new ItemCheckResult(false, false);
         }
         
-        List<? extends String> nonConsumableItems = Config.nonConsumableItems.get();
-        List<? extends String> consumableItems = Config.consumableItems.get();
+        List<? extends String> nonConsumableItem = Config.nonConsumableItem.get();
+        List<? extends String> consumableItem = Config.consumableItem.get();
+        List<? extends String> nonConsumableCuriosItem = Config.nonConsumableCuriosItem.get();
+        List<? extends String> consumableCuriosItem = Config.consumableCuriosItem.get();
 
-        if (nonConsumableItems.isEmpty() && consumableItems.isEmpty()) {
-            return new ItemCheckResult(true, Config.consumeItem.get());
-        }
-
-        if (!nonConsumableItems.isEmpty() && nonConsumableItems.contains(itemString)) {
+        if (!nonConsumableCuriosItem.isEmpty() && nonConsumableCuriosItem.contains(itemString)) {
             return new ItemCheckResult(true, false);
         }
-
-        if (!consumableItems.isEmpty() && consumableItems.contains(itemString)) {
+        
+        if (!consumableCuriosItem.isEmpty() && consumableCuriosItem.contains(itemString)) {
             return new ItemCheckResult(true, true);
         }
 
+        if (nonConsumableItem.isEmpty() && consumableItem.isEmpty()) {
+            return new ItemCheckResult(true, Config.consumeItem.get());
+        }
+        
+        if (!nonConsumableItem.isEmpty() && nonConsumableItem.contains(itemString)) {
+            return new ItemCheckResult(true, false);
+        }
+        
+        if (!consumableItem.isEmpty() && consumableItem.contains(itemString)) {
+            return new ItemCheckResult(true, true);
+        }
+        
         return new ItemCheckResult(false, false);
     }
     
@@ -54,7 +65,7 @@ public class Util {
         }
         return itemKey.toString();
     }
-
+    
     private static class ItemCheckResult {
         final boolean canTrigger;
         final boolean shouldConsume;
@@ -112,9 +123,39 @@ public class Util {
         return ItemStack.EMPTY;
     }
     
+    public static ItemStack findTotemInArmor(Player player) {
+        if (shouldCheckArmor()) {
+            for (int i = 36; i < 40; i++) {
+                ItemStack stack = player.getInventory().getItem(i);
+                if (canItemActAsTotem(stack)) {
+                    return stack;
+                }
+            }
+        }
+        
+        return ItemStack.EMPTY;
+    }
+    
+    public static ItemStack findTotemInCurios(Player player) {
+        if (!shouldCheckCurios()) {
+            return ItemStack.EMPTY;
+        }
+
+        return CuriosApi.getCuriosInventory(player)
+            .map(handler -> {
+                List<SlotResult> result = handler.findCurios(Util::canItemActAsTotem);
+                if (!result.isEmpty()) {
+                    return result.get(0).stack();
+                }
+                return ItemStack.EMPTY;
+            })
+            .orElse(ItemStack.EMPTY);
+    }
+    
     public static ItemStack findTotem(Player player) {
         if (!shouldCheckMainHand() && !shouldCheckOffHand() && 
-            !shouldCheckHotbar() && !shouldCheckInventory()) {
+            !shouldCheckHotbar() && !shouldCheckInventory() && 
+            !shouldCheckArmor() && !shouldCheckCurios()) {
             return ItemStack.EMPTY;
         }
         
@@ -131,6 +172,16 @@ public class Util {
         ItemStack inventoryTotem = findTotemInInventory(player);
         if (!inventoryTotem.isEmpty()) {
             return inventoryTotem;
+        }
+
+        ItemStack armorTotem = findTotemInArmor(player);
+        if (!armorTotem.isEmpty()) {
+            return armorTotem;
+        }
+        
+        ItemStack curiosTotem = findTotemInCurios(player);
+        if (!curiosTotem.isEmpty()) {
+            return curiosTotem;
         }
         
         return ItemStack.EMPTY;
@@ -150,5 +201,13 @@ public class Util {
     
     public static boolean shouldCheckInventory() {
         return Config.checkInventory.get();
+    }
+    
+    public static boolean shouldCheckArmor() {
+        return Config.checkArmor.get();
+    }
+    
+    public static boolean shouldCheckCurios() {
+        return Config.checkCurios.get();
     }
 }

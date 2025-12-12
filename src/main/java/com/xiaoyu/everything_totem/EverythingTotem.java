@@ -11,7 +11,7 @@ public class EverythingTotem {
     
     @SuppressWarnings("removal")
     public EverythingTotem() {
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.BUILDER.build());
         FMLJavaModLoadingContext.get().getModEventBus().register(Config.class);
     }
 }
