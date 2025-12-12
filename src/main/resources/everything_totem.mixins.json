@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.xiaoyu.everything_totem.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "everything_totem.refmap.json",
+  "mixins": [
+    "LivingEntityMixin"
+  ],
+  "client": [
+    "client.ClientPacketListenerMixin"
+  ],
+  "server": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
