@@ -5,6 +5,7 @@ import net.minecraft.world.item.*;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.InteractionHand;
 import net.minecraftforge.registries.*;
+import net.minecraftforge.fml.ModList;
 import top.theillusivec4.curios.api.*;
 
 import java.util.*;
@@ -168,7 +169,7 @@ public class Util {
             }
         }
 
-        if (Config.checkCurios.get()) {
+        if (Config.checkCurios.get() && ModList.get().isLoaded("curios")) {
             ItemStack curiosTotem = CuriosApi.getCuriosInventory(entity)
                 .map(handler -> {
                     List<SlotResult> result = handler.findCurios(stack -> {
