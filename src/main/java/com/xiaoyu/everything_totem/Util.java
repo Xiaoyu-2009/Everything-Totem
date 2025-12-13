@@ -1,213 +1,193 @@
 package com.xiaoyu.everything_totem;
 
-import net.minecraft.world.item.*;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.*;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.*;
 import top.theillusivec4.curios.api.*;
 
 import java.util.*;
 
 public class Util {
-    public static boolean canItemActAsTotem(ItemStack itemStack) {
-        ItemCheckResult result = checkItemStatus(itemStack);
-        return result.canTrigger;
-    }
-    
-    public static boolean shouldConsumeItem(ItemStack itemStack) {
-        ItemCheckResult result = checkItemStatus(itemStack);
-        return result.shouldConsume;
-    }
-    
-    private static ItemCheckResult checkItemStatus(ItemStack itemStack) {
-        if (itemStack.isEmpty()) {
-            return new ItemCheckResult(false, false);
-        }
+    public static final Map<ItemStack, String> itemSlotMapping = new WeakHashMap<>();
 
-        String itemString = getItemString(itemStack);
-        if (itemString == null) {
-            return new ItemCheckResult(false, false);
-        }
+    public static class CheckResult {
+        public boolean canTrigger;
+        public boolean shouldConsume;
         
-        List<? extends String> nonConsumableItem = Config.nonConsumableItem.get();
-        List<? extends String> consumableItem = Config.consumableItem.get();
-        List<? extends String> nonConsumableCuriosItem = Config.nonConsumableCuriosItem.get();
-        List<? extends String> consumableCuriosItem = Config.consumableCuriosItem.get();
-
-        if (!nonConsumableCuriosItem.isEmpty() && nonConsumableCuriosItem.contains(itemString)) {
-            return new ItemCheckResult(true, false);
-        }
-        
-        if (!consumableCuriosItem.isEmpty() && consumableCuriosItem.contains(itemString)) {
-            return new ItemCheckResult(true, true);
-        }
-
-        if (nonConsumableItem.isEmpty() && consumableItem.isEmpty()) {
-            return new ItemCheckResult(true, Config.consumeItem.get());
-        }
-        
-        if (!nonConsumableItem.isEmpty() && nonConsumableItem.contains(itemString)) {
-            return new ItemCheckResult(true, false);
-        }
-        
-        if (!consumableItem.isEmpty() && consumableItem.contains(itemString)) {
-            return new ItemCheckResult(true, true);
-        }
-        
-        return new ItemCheckResult(false, false);
-    }
-    
-    private static String getItemString(ItemStack itemStack) {
-        ResourceLocation itemKey = ForgeRegistries.ITEMS.getKey(itemStack.getItem());
-        if (itemKey == null) {
-            return null;
-        }
-        return itemKey.toString();
-    }
-    
-    private static class ItemCheckResult {
-        final boolean canTrigger;
-        final boolean shouldConsume;
-        
-        ItemCheckResult(boolean canTrigger, boolean shouldConsume) {
+        public CheckResult(boolean canTrigger, boolean shouldConsume) {
             this.canTrigger = canTrigger;
             this.shouldConsume = shouldConsume;
         }
     }
-    
-    public static ItemStack findTotemInHands(Player player) {
-        ItemStack mainHandStack = ItemStack.EMPTY;
-        ItemStack offHandStack = ItemStack.EMPTY;
+
+    public static CheckResult checkItemStatusUniversal(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return new CheckResult(false, false);
+        }
+
+        String slotType = itemSlotMapping.get(stack);
         
-        if (shouldCheckMainHand()) {
-            mainHandStack = player.getItemInHand(InteractionHand.MAIN_HAND);
-            if (canItemActAsTotem(mainHandStack)) {
-                return mainHandStack;
-            }
+        return checkItemStatusForSpecificSlot(stack, slotType);
+    }
+
+    public static CheckResult checkItemStatusForSpecificSlot(ItemStack stack, String slotType) {
+        if (stack.isEmpty()) {
+            return new CheckResult(false, false);
         }
         
-        if (shouldCheckOffHand()) {
-            offHandStack = player.getItemInHand(InteractionHand.OFF_HAND);
-            if (canItemActAsTotem(offHandStack)) {
-                return offHandStack;
-            }
+        String itemName = ForgeRegistries.ITEMS.getKey(stack.getItem()).toString();
+
+        switch (slotType) {
+            case "mainhand":
+                return checkItemInConfigList(itemName, 
+                    Config.nonConsumableMainHandItem.get(), 
+                    Config.consumableMainHandItem.get());
+                
+            case "offhand":
+                return checkItemInConfigList(itemName, 
+                    Config.nonConsumableOffHandItem.get(), 
+                    Config.consumableOffHandItem.get());
+                
+            case "hotbar":
+                return checkItemInConfigList(itemName, 
+                    Config.nonConsumableHotbarItem.get(), 
+                    Config.consumableHotbarItem.get());
+                
+            case "inventory":
+                return checkItemInConfigList(itemName, 
+                    Config.nonConsumableInventoryItem.get(), 
+                    Config.consumableInventoryItem.get());
+                
+            case "armor":
+                return checkItemInConfigList(itemName, 
+                    Config.nonConsumableArmorItem.get(), 
+                    Config.consumableArmorItem.get());
+                
+            case "curios":
+                return checkItemInConfigList(itemName, 
+                    Config.nonConsumableCuriosItem.get(), 
+                    Config.consumableCuriosItem.get());
         }
-        
-        return ItemStack.EMPTY;
+
+        return new CheckResult(true, Config.consumeItemWhenEverythingIsTotem.get());
+    }
+
+    public static CheckResult checkItemInConfigList(String itemName, 
+        List<? extends String> nonConsumableList, 
+        List<? extends String> consumableList) {
+        if (!nonConsumableList.isEmpty() && nonConsumableList.contains(itemName)) {
+            return new CheckResult(true, false);
+        }
+
+        if (!consumableList.isEmpty() && consumableList.contains(itemName)) {
+            return new CheckResult(true, true);
+        }
+
+        if (!nonConsumableList.isEmpty() || !consumableList.isEmpty()) {
+            return new CheckResult(false, false);
+        }
+
+        return new CheckResult(true, Config.consumeItemWhenEverythingIsTotem.get());
     }
     
-    public static ItemStack findTotemInHotbar(Player player) {
-        if (shouldCheckHotbar()) {
-            for (int i = 0; i < 9; i++) {
-                ItemStack stack = player.getInventory().getItem(i);
-                if (canItemActAsTotem(stack)) {
-                    return stack;
-                }
-            }
-        }
-        
-        return ItemStack.EMPTY;
+    public static boolean shouldConsumeItem(ItemStack stack) {
+        CheckResult result = checkItemStatusUniversal(stack);
+        return result.shouldConsume;
     }
     
-    public static ItemStack findTotemInInventory(Player player) {
-        if (shouldCheckInventory()) {
-            for (int i = 9; i < 36; i++) {
-                ItemStack stack = player.getInventory().getItem(i);
-                if (canItemActAsTotem(stack)) {
-                    return stack;
-                }
-            }
-        }
-        
-        return ItemStack.EMPTY;
-    }
-    
-    public static ItemStack findTotemInArmor(Player player) {
-        if (shouldCheckArmor()) {
-            for (int i = 36; i < 40; i++) {
-                ItemStack stack = player.getInventory().getItem(i);
-                if (canItemActAsTotem(stack)) {
-                    return stack;
-                }
-            }
-        }
-        
-        return ItemStack.EMPTY;
-    }
-    
-    public static ItemStack findTotemInCurios(Player player) {
-        if (!shouldCheckCurios()) {
+    public static ItemStack findTotem(LivingEntity entity) {
+        if (!Config.checkMainHand.get() && !Config.checkOffHand.get() && !Config.checkHotbar.get() &&
+            !Config.checkInventory.get() && !Config.checkArmor.get() && !Config.checkCurios.get()) {
             return ItemStack.EMPTY;
         }
 
-        return CuriosApi.getCuriosInventory(player)
-            .map(handler -> {
-                List<SlotResult> result = handler.findCurios(Util::canItemActAsTotem);
-                if (!result.isEmpty()) {
-                    return result.get(0).stack();
+        if (Config.checkMainHand.get()) {
+            ItemStack mainHandStack = entity.getItemInHand(InteractionHand.MAIN_HAND);
+            if (!mainHandStack.isEmpty()) {
+                itemSlotMapping.put(mainHandStack, "mainhand");
+                CheckResult result = checkItemStatusForSpecificSlot(mainHandStack, "mainhand");
+                if (result.canTrigger) {
+                    return mainHandStack;
                 }
-                return ItemStack.EMPTY;
-            })
-            .orElse(ItemStack.EMPTY);
-    }
-    
-    public static ItemStack findTotem(Player player) {
-        if (!shouldCheckMainHand() && !shouldCheckOffHand() && 
-            !shouldCheckHotbar() && !shouldCheckInventory() && 
-            !shouldCheckArmor() && !shouldCheckCurios()) {
-            return ItemStack.EMPTY;
-        }
-        
-        ItemStack handTotem = findTotemInHands(player);
-        if (!handTotem.isEmpty()) {
-            return handTotem;
-        }
-        
-        ItemStack hotbarTotem = findTotemInHotbar(player);
-        if (!hotbarTotem.isEmpty()) {
-            return hotbarTotem;
-        }
-        
-        ItemStack inventoryTotem = findTotemInInventory(player);
-        if (!inventoryTotem.isEmpty()) {
-            return inventoryTotem;
+            }
         }
 
-        ItemStack armorTotem = findTotemInArmor(player);
-        if (!armorTotem.isEmpty()) {
-            return armorTotem;
+        if (Config.checkOffHand.get()) {
+            ItemStack offHandStack = entity.getItemInHand(InteractionHand.OFF_HAND);
+            if (!offHandStack.isEmpty()) {
+                itemSlotMapping.put(offHandStack, "offhand");
+                CheckResult result = checkItemStatusForSpecificSlot(offHandStack, "offhand");
+                if (result.canTrigger) {
+                    return offHandStack;
+                }
+            }
         }
-        
-        ItemStack curiosTotem = findTotemInCurios(player);
-        if (!curiosTotem.isEmpty()) {
-            return curiosTotem;
+
+        if (entity instanceof Player player) {
+            if (Config.checkHotbar.get()) {
+                for (int i = 0; i < 9; i++) {
+                    ItemStack stack = player.getInventory().getItem(i);
+                    if (!stack.isEmpty()) {
+                        itemSlotMapping.put(stack, "hotbar");
+                        CheckResult result = checkItemStatusForSpecificSlot(stack, "hotbar");
+                        if (result.canTrigger) {
+                            return stack;
+                        }
+                    }
+                }
+            }
+
+            if (Config.checkInventory.get()) {
+                for (int i = 9; i < 36; i++) {
+                    ItemStack stack = player.getInventory().getItem(i);
+                    if (!stack.isEmpty()) {
+                        itemSlotMapping.put(stack, "inventory");
+                        CheckResult result = checkItemStatusForSpecificSlot(stack, "inventory");
+                        if (result.canTrigger) {
+                            return stack;
+                        }
+                    }
+                }
+            }
         }
-        
+
+        if (Config.checkArmor.get()) {
+            for (EquipmentSlot slot : EquipmentSlot.values()) {
+                if (slot.getType() == EquipmentSlot.Type.ARMOR) {
+                    ItemStack stack = entity.getItemBySlot(slot);
+                    if (!stack.isEmpty()) {
+                        itemSlotMapping.put(stack, "armor");
+                        CheckResult result = checkItemStatusForSpecificSlot(stack, "armor");
+                        if (result.canTrigger) {
+                            return stack;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (Config.checkCurios.get()) {
+            ItemStack curiosTotem = CuriosApi.getCuriosInventory(entity)
+                .map(handler -> {
+                    List<SlotResult> result = handler.findCurios(stack -> {
+                        itemSlotMapping.put(stack, "curios");
+                        CheckResult checkResult = checkItemStatusUniversal(stack);
+                        return checkResult.canTrigger;
+                    });
+                    if (!result.isEmpty()) {
+                        return result.get(0).stack();
+                    }
+                    return ItemStack.EMPTY;
+                })
+                .orElse(ItemStack.EMPTY);
+
+            if (!curiosTotem.isEmpty()) {
+                return curiosTotem;
+            }
+        }
+
         return ItemStack.EMPTY;
-    }
-    
-    public static boolean shouldCheckMainHand() {
-        return Config.checkMainHand.get();
-    }
-    
-    public static boolean shouldCheckOffHand() {
-        return Config.checkOffHand.get();
-    }
-    
-    public static boolean shouldCheckHotbar() {
-        return Config.checkHotbar.get();
-    }
-    
-    public static boolean shouldCheckInventory() {
-        return Config.checkInventory.get();
-    }
-    
-    public static boolean shouldCheckArmor() {
-        return Config.checkArmor.get();
-    }
-    
-    public static boolean shouldCheckCurios() {
-        return Config.checkCurios.get();
     }
 }

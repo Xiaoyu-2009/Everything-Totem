@@ -19,7 +19,7 @@ public class ClientPacketListenerMixin {
         )
     )
     private static boolean redirectFindTotemCheck(ItemStack itemStack, Item item) {
-        return Util.canItemActAsTotem(itemStack);
+        return Util.checkItemStatusUniversal(itemStack).canTrigger;
     }
     
     @Redirect(

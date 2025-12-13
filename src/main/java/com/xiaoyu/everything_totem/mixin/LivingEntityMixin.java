@@ -2,8 +2,7 @@ package com.xiaoyu.everything_totem.mixin;
 
 import com.xiaoyu.everything_totem.*;
 import net.minecraft.world.item.*;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.InteractionHand;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.*;
@@ -19,7 +18,7 @@ public class LivingEntityMixin {
         )
     )
     public boolean redirectTotemCheck(ItemStack itemStack, Item item) {
-        return Util.canItemActAsTotem(itemStack);
+        return Util.checkItemStatusUniversal(itemStack).canTrigger;
     }
     
     @Redirect(
@@ -30,12 +29,9 @@ public class LivingEntityMixin {
         )
     )
     public ItemStack redirectGetItemInHand(LivingEntity livingEntity, InteractionHand interactionHand) {
-        if (livingEntity instanceof Player) {
-            Player player = (Player) livingEntity;
-            ItemStack totem = Util.findTotem(player);
-            if (!totem.isEmpty()) {
-                return totem;
-            }
+        ItemStack totem = Util.findTotem(livingEntity);
+        if (!totem.isEmpty()) {
+            return totem;
         }
         
         return livingEntity.getItemInHand(interactionHand);
