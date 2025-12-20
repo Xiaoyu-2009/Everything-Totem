@@ -49,14 +49,14 @@ public class Config {
         checkInventory = BUILDER
                 .comment("Whether to check item in inventory")
                 .define("checkInventory", true);
-                
-        checkCurios = BUILDER
-                .comment("Whether to check item in curios slot")
-                .define("checkCurios", true);
-                
+
         checkArmor = BUILDER
                 .comment("Whether to check item in armor slots")
                 .define("checkArmor", true);
+
+        checkCurios = BUILDER
+                .comment("Whether to check item in curios slot")
+                .define("checkCurios", true);
 
         nonConsumableMainHandItem = BUILDER
                 .comment("List of main hand items that will not be consumed after triggering totem effect")

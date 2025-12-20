@@ -37,6 +37,10 @@ public class Util {
         if (stack.isEmpty()) {
             return new CheckResult(false, false);
         }
+
+        if (slotType == null) {
+            return new CheckResult(true, Config.consumeItemWhenEverythingIsTotem.get());
+        }
         
         String itemName = ForgeRegistries.ITEMS.getKey(stack.getItem()).toString();
 
@@ -174,7 +178,7 @@ public class Util {
                 .map(handler -> {
                     List<SlotResult> result = handler.findCurios(stack -> {
                         itemSlotMapping.put(stack, "curios");
-                        CheckResult checkResult = checkItemStatusUniversal(stack);
+                        CheckResult checkResult = checkItemStatusForSpecificSlot(stack, "curios");
                         return checkResult.canTrigger;
                     });
                     if (!result.isEmpty()) {
